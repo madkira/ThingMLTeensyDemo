@@ -1,0 +1,171 @@
+import "../_Datatypes.thingml"
+import "../BUTTON.thingml"
+thing fragment iblinker
+{
+	message blink();
+	message enderreur();
+}
+
+thing  fragment eblinker
+{
+	message erreur(id: UInt8);
+}
+
+thing fragment iSoftButton
+{
+	message timer_timeout();
+}
+
+thing fragment SoftButtonMsgs 
+{
+	message click ();
+	message double_click ();
+	message long_press ();
+}
+
+thing SoftButton includes ButtonMsgs, iSoftButton, SoftButtonMsgs
+@c_header "#include <Timer.h>"
+@c_global "extern struct SoftButton_Instance softButton_var;"
+{	
+
+	readonly property long_delay : UInt16 = 1000
+	readonly property double_delay : UInt16 = 250
+
+	required port Button 
+    {
+		receives press, release
+	}
+	
+	internal port Timer {
+		sends timer_timeout
+		receives timer_timeout
+	}
+	
+	provided port SoftButton 
+    {
+		sends click, double_click, long_press
+	}
+
+	function timeout_button()
+	@c_prototype "void timeout_button()"
+	do
+		'SoftButton_send_Timer_timer_timeout(&softButton_var);'
+	end 
+
+	statechart SoftButtonImpl init Idle 
+    {
+        on entry do
+		'initialize_timer();'
+	end
+	state Idle 
+        { 
+            transition pressed -> Pressed
+            event m: Button?press
+        }
+        
+        state Pressed 
+        {
+			on entry 'start_timer(1, '&long_delay&', &timeout_button);'
+			on exit 'timer_cancel(1);'
+			transition long -> Idle
+			event Timer?timer_timeout
+			action SoftButton!long_press()
+
+			transition click -> Released
+			event Button?release
+        }
+        
+        state Released 
+        {
+        	on entry 'start_timer(1, '&double_delay&', &timeout_button);'
+        	on exit 'timer_cancel(1);'
+        
+        	transition click -> Idle
+			event Timer?timer_timeout
+			action SoftButton!click()
+			
+			transition double -> Idle
+            event Button?press
+            action SoftButton!double_click()
+        }
+    }
+}
+
+thing Blinker includes iblinker, eblinker
+@c_header"#include <morse_code.h>
+"
+@c_global"
+#define MORSE_UNIT 200000
+extern struct Blinker_Instance blinker_var;
+IntervalTimer blink_timer;
+boolean current_blink = HIGH;
+"
+{	
+	internal port evt
+	{
+		receives blink, enderreur
+		sends blink, enderreur
+	}
+	
+	provided port err
+	{
+		receives erreur
+	}
+	
+	
+	function timer_message(time : UInt32) do
+		'blink_timer.begin(&callback_message, '&time&'*MORSE_UNIT);'
+	end
+
+	function callback_message()
+	@c_prototype "void callback_message()"
+	do'
+		Blinker_send_evt_blink(&blinker_var);'	
+		
+	end
+	
+
+	statechart BlinkerState init Idle 
+    {
+    	on entry do 'pinMode(13, OUTPUT);
+    				blink_timer = IntervalTimer();'
+				end
+    	
+    	state Idle{
+    		on entry do
+    			'digitalWriteFast(13, HIGH);'
+    		end
+    		transition errors -> errBegin event m: err?erreur action do
+    															'set_code('&m.id&');'
+    															end
+    	}
+    	
+    	state errBegin{
+    		on entry do
+    			'digitalWriteFast(13, LOW);
+    			current_blink = HIGH;'
+    			timer_message(20)
+    		end
+    		transition errors -> Message event m: evt?blink
+    	}
+    	
+        state Message
+        {
+        	on entry do
+        		'digitalWriteFast(13, current_blink);
+        		current_blink = (current_blink == HIGH)? LOW : HIGH;'
+				'uint8_t val = get_time();'
+				if('val' == 0) do
+					'reset();'
+					evt!enderreur()
+				end
+				else do
+					timer_message('val')
+				end
+        	end
+			transition errors -> Message event m: evt?blink 
+        	transition blink -> Idle event m: evt?enderreur
+        	
+        }
+    }
+}

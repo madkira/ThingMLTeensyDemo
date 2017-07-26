@@ -1,0 +1,39 @@
+import "Save_Load.thingml"
+
+thing SaveTest includes Saver
+{
+	required port saveact{
+		sends writebyte
+	}
+	
+	required port aquireact{
+		receives byteread
+		sends readbyte
+	}
+	
+	statechart TestSaver init Idle
+	{
+		on entry do
+			'Serial.begin(115200);'
+		end
+		state Idle{
+			on entry do
+				'delay(3000);'
+				aquireact!readbyte(1)
+			end
+			internal event m: aquireact?byteread action do
+				'Serial.println('&m.val&');'
+				saveact!writebyte(1,m.val+1)
+			end
+		}
+		
+	}
+}
+
+configuration Teensy
+{
+	instance saveTest : SaveTest
+	instance save : Save
+	connector saveTest.aquireact => save.Reader
+	connector saveTest.saveact => save.Writer
+}

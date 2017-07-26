@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="ASCII"?>
+<thingML:ThingMLModel xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:thingML="http://www.thingml.org/xtext/ThingML">
+  <types xsi:type="thingML:Thing" name="Communication" includes="//@types.2 //@types.4">
+    <ports xsi:type="thingML:RequiredPort" name="Blinker" sends="//@types.2/@messages.0"/>
+    <ports xsi:type="thingML:RequiredPort" name="Button" receives="//@types.4/@messages.0 //@types.4/@messages.1 //@types.4/@messages.2"/>
+    <behaviour name="Main" initial="//@types.0/@behaviour.0/@substate.0">
+      <substate name="Idle">
+        <internal>
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.0/@ports.1" message="//@types.4/@messages.1"/>
+          <action xsi:type="thingML:ActionBlock">
+            <actions xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.2/@messages.0">
+              <parameters xsi:type="thingML:IntegerLiteral" intValue="12"/>
+            </actions>
+          </action>
+        </internal>
+        <internal>
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.0/@ports.1" message="//@types.4/@messages.2"/>
+          <action xsi:type="thingML:SendAction" port="//@types.0/@ports.0" message="//@types.2/@messages.0">
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="3"/>
+          </action>
+        </internal>
+      </substate>
+    </behaviour>
+  </types>
+  <types xsi:type="thingML:Thing" name="iblinker" fragment="true">
+    <messages name="blink"/>
+    <messages name="enderreur"/>
+  </types>
+  <types xsi:type="thingML:Thing" name="eblinker" fragment="true">
+    <messages name="erreur">
+      <parameters name="id">
+        <typeRef type="//@types.10"/>
+      </parameters>
+    </messages>
+  </types>
+  <types xsi:type="thingML:Thing" name="iSoftButton" fragment="true">
+    <messages name="timer_timeout"/>
+  </types>
+  <types xsi:type="thingML:Thing" name="SoftButtonMsgs" fragment="true">
+    <messages name="click"/>
+    <messages name="double_click"/>
+    <messages name="long_press"/>
+  </types>
+  <types xsi:type="thingML:Thing" name="SoftButton" includes="//@types.21 //@types.3 //@types.4">
+    <annotations name="c_header" value="#include &lt;Timer.h>"/>
+    <annotations name="c_global" value="extern struct SoftButton_Instance softButton_var;"/>
+    <ports xsi:type="thingML:RequiredPort" name="Button" receives="//@types.21/@messages.0 //@types.21/@messages.1"/>
+    <ports xsi:type="thingML:InternalPort" name="Timer" sends="//@types.3/@messages.0" receives="//@types.3/@messages.0"/>
+    <ports xsi:type="thingML:ProvidedPort" name="SoftButton" sends="//@types.4/@messages.0 //@types.4/@messages.1 //@types.4/@messages.2"/>
+    <properties name="long_delay" readonly="true">
+      <typeRef type="//@types.11"/>
+      <init xsi:type="thingML:IntegerLiteral" intValue="1000"/>
+    </properties>
+    <properties name="double_delay" readonly="true">
+      <typeRef type="//@types.11"/>
+      <init xsi:type="thingML:IntegerLiteral" intValue="250"/>
+    </properties>
+    <functions name="timeout_button">
+      <annotations name="c_prototype" value="void timeout_button()"/>
+      <body xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="SoftButton_send_Timer_timer_timeout(&amp;softButton_var);"/>
+      </body>
+    </functions>
+    <behaviour name="SoftButtonImpl" initial="//@types.5/@behaviour.0/@substate.0">
+      <entry xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="initialize_timer();"/>
+      </entry>
+      <substate name="Idle">
+        <outgoing name="pressed" target="//@types.5/@behaviour.0/@substate.1">
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.5/@ports.0" message="//@types.21/@messages.0"/>
+        </outgoing>
+      </substate>
+      <substate name="Pressed">
+        <entry xsi:type="thingML:ExternStatement" statement="start_timer(1, ">
+          <segments xsi:type="thingML:PropertyReference" property="//@types.5/@properties.0"/>
+          <segments xsi:type="thingML:ExternExpression" expression=", &amp;timeout_button);"/>
+        </entry>
+        <exit xsi:type="thingML:ExternStatement" statement="timer_cancel(1);"/>
+        <outgoing name="long" target="//@types.5/@behaviour.0/@substate.0">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.5/@ports.1" message="//@types.3/@messages.0"/>
+          <action xsi:type="thingML:SendAction" port="//@types.5/@ports.2" message="//@types.4/@messages.2"/>
+        </outgoing>
+        <outgoing name="click" target="//@types.5/@behaviour.0/@substate.2">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.5/@ports.0" message="//@types.21/@messages.1"/>
+        </outgoing>
+      </substate>
+      <substate name="Released">
+        <entry xsi:type="thingML:ExternStatement" statement="start_timer(1, ">
+          <segments xsi:type="thingML:PropertyReference" property="//@types.5/@properties.1"/>
+          <segments xsi:type="thingML:ExternExpression" expression=", &amp;timeout_button);"/>
+        </entry>
+        <exit xsi:type="thingML:ExternStatement" statement="timer_cancel(1);"/>
+        <outgoing name="click" target="//@types.5/@behaviour.0/@substate.0">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.5/@ports.1" message="//@types.3/@messages.0"/>
+          <action xsi:type="thingML:SendAction" port="//@types.5/@ports.2" message="//@types.4/@messages.0"/>
+        </outgoing>
+        <outgoing name="double" target="//@types.5/@behaviour.0/@substate.0">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.5/@ports.0" message="//@types.21/@messages.0"/>
+          <action xsi:type="thingML:SendAction" port="//@types.5/@ports.2" message="//@types.4/@messages.1"/>
+        </outgoing>
+      </substate>
+    </behaviour>
+  </types>
+  <types xsi:type="thingML:Thing" name="Blinker" includes="//@types.1 //@types.2">
+    <annotations name="c_header" value="#include &lt;morse_code.h>&#xA;"/>
+    <annotations name="c_global" value="&#xA;#define MORSE_UNIT 200000&#xA;extern struct Blinker_Instance blinker_var;&#xA;IntervalTimer blink_timer;&#xA;boolean current_blink = HIGH;&#xA;"/>
+    <ports xsi:type="thingML:InternalPort" name="evt" sends="//@types.1/@messages.0 //@types.1/@messages.1" receives="//@types.1/@messages.0 //@types.1/@messages.1"/>
+    <ports xsi:type="thingML:ProvidedPort" name="err" receives="//@types.2/@messages.0"/>
+    <functions name="timer_message">
+      <parameters name="time">
+        <typeRef type="//@types.13"/>
+      </parameters>
+      <body xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="blink_timer.begin(&amp;callback_message, ">
+          <segments xsi:type="thingML:PropertyReference" property="//@types.6/@functions.0/@parameters.0"/>
+          <segments xsi:type="thingML:ExternExpression" expression="*MORSE_UNIT);"/>
+        </actions>
+      </body>
+    </functions>
+    <functions name="callback_message">
+      <annotations name="c_prototype" value="void callback_message()"/>
+      <body xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="&#xA;&#x9;&#x9;Blinker_send_evt_blink(&amp;blinker_var);"/>
+      </body>
+    </functions>
+    <behaviour name="BlinkerState" initial="//@types.6/@behaviour.0/@substate.0">
+      <entry xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="pinMode(13, OUTPUT);&#xA;    &#x9;&#x9;&#x9;&#x9;blink_timer = IntervalTimer();"/>
+      </entry>
+      <substate name="Idle">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:ExternStatement" statement="digitalWriteFast(13, HIGH);"/>
+        </entry>
+        <outgoing name="errors" target="//@types.6/@behaviour.0/@substate.1">
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.6/@ports.1" message="//@types.2/@messages.0"/>
+          <action xsi:type="thingML:ActionBlock">
+            <actions xsi:type="thingML:ExternStatement" statement="set_code(">
+              <segments xsi:type="thingML:EventReference" receiveMsg="//@types.6/@behaviour.0/@substate.0/@outgoing.0/@event.0" parameter="//@types.2/@messages.0/@parameters.0"/>
+              <segments xsi:type="thingML:ExternExpression" expression=");"/>
+            </actions>
+          </action>
+        </outgoing>
+      </substate>
+      <substate name="errBegin">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:ExternStatement" statement="digitalWriteFast(13, LOW);&#xA;    &#x9;&#x9;&#x9;current_blink = HIGH;"/>
+          <actions xsi:type="thingML:FunctionCallStatement" function="//@types.6/@functions.0">
+            <parameters xsi:type="thingML:IntegerLiteral" intValue="20"/>
+          </actions>
+        </entry>
+        <outgoing name="errors" target="//@types.6/@behaviour.0/@substate.2">
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.6/@ports.0" message="//@types.1/@messages.0"/>
+        </outgoing>
+      </substate>
+      <substate name="Message">
+        <entry xsi:type="thingML:ActionBlock">
+          <actions xsi:type="thingML:ExternStatement" statement="digitalWriteFast(13, current_blink);&#xA;        &#x9;&#x9;current_blink = (current_blink == HIGH)? LOW : HIGH;"/>
+          <actions xsi:type="thingML:ExternStatement" statement="uint8_t val = get_time();"/>
+          <actions xsi:type="thingML:ConditionalAction">
+            <condition xsi:type="thingML:EqualsExpression">
+              <lhs xsi:type="thingML:ExternExpression" expression="val"/>
+              <rhs xsi:type="thingML:IntegerLiteral"/>
+            </condition>
+            <action xsi:type="thingML:ActionBlock">
+              <actions xsi:type="thingML:ExternStatement" statement="reset();"/>
+              <actions xsi:type="thingML:SendAction" port="//@types.6/@ports.0" message="//@types.1/@messages.1"/>
+            </action>
+            <elseAction xsi:type="thingML:ActionBlock">
+              <actions xsi:type="thingML:FunctionCallStatement" function="//@types.6/@functions.0">
+                <parameters xsi:type="thingML:ExternExpression" expression="val"/>
+              </actions>
+            </elseAction>
+          </actions>
+        </entry>
+        <outgoing name="errors" target="//@types.6/@behaviour.0/@substate.2">
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.6/@ports.0" message="//@types.1/@messages.0"/>
+        </outgoing>
+        <outgoing name="blink" target="//@types.6/@behaviour.0/@substate.0">
+          <event xsi:type="thingML:ReceiveMessage" name="m" port="//@types.6/@ports.0" message="//@types.1/@messages.1"/>
+        </outgoing>
+      </substate>
+    </behaviour>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Char" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="char"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:ObjectType" name="String">
+    <annotations name="type_checker" value="String"/>
+    <annotations name="c_type" value="char *"/>
+    <annotations name="c_byte_size" value="2"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Boolean" ByteSize="1">
+    <annotations name="type_checker" value="Boolean"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="UInt8" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="UInt16" ByteSize="2">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint16_t"/>
+    <annotations name="c_byte_size" value="2"/>
+    <annotations name="java_type" value="int"/>
+    <annotations name="java_primitive" value="true"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Int16" ByteSize="2">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="int16_t"/>
+    <annotations name="c_byte_size" value="2"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="UInt32" ByteSize="4">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint32_t"/>
+    <annotations name="c_byte_size" value="4"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Integer" ByteSize="2">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="int16_t"/>
+    <annotations name="c_byte_size" value="2"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Long" ByteSize="4">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="long"/>
+    <annotations name="c_byte_size" value="4"/>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Float" ByteSize="4">
+    <annotations name="type_checker" value="Real"/>
+    <annotations name="c_type" value="float"/>
+    <annotations name="c_byte_size" value="4"/>
+  </types>
+  <types xsi:type="thingML:Enumeration" name="DigitalState">
+    <annotations name="c_byte_size" value="1"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <literals name="LOW">
+      <annotations name="enum_val" value="0"/>
+    </literals>
+    <literals name="HIGH">
+      <annotations name="enum_val" value="1"/>
+    </literals>
+  </types>
+  <types xsi:type="thingML:PrimitiveType" name="Byte" ByteSize="1">
+    <annotations name="type_checker" value="Integer"/>
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+    <annotations name="java_type" value="byte"/>
+    <annotations name="java_primitive" value="true"/>
+    <annotations name="scala_type" value="Byte"/>
+    <annotations name="SenML_type" value="Double"/>
+  </types>
+  <types xsi:type="thingML:Enumeration" name="DigitalState">
+    <annotations name="c_type" value="uint8_t"/>
+    <annotations name="c_byte_size" value="1"/>
+    <literals name="LOW">
+      <annotations name="enum_val" value="0"/>
+    </literals>
+    <literals name="HIGH">
+      <annotations name="enum_val" value="1"/>
+    </literals>
+  </types>
+  <types xsi:type="thingML:Thing" name="TimerMsgs" fragment="true">
+    <messages name="timer_start">
+      <annotations name="timer_start" value="true"/>
+      <parameters name="id">
+        <typeRef type="//@types.10"/>
+      </parameters>
+      <parameters name="time">
+        <typeRef type="//@types.13"/>
+      </parameters>
+    </messages>
+    <messages name="timer_cancel">
+      <annotations name="timer_cancel" value="true"/>
+      <parameters name="id">
+        <typeRef type="//@types.10"/>
+      </parameters>
+    </messages>
+    <messages name="timer_timeout">
+      <annotations name="timeout" value="true"/>
+      <parameters name="id">
+        <typeRef type="//@types.10"/>
+      </parameters>
+    </messages>
+    <messages name="ms25_tic">
+      <annotations name="xms_tic" value="25"/>
+    </messages>
+    <messages name="ms500_tic">
+      <annotations name="xms_tic" value="500"/>
+    </messages>
+  </types>
+  <types xsi:type="thingML:Thing" name="ButtonMsgs" fragment="true">
+    <messages name="press"/>
+    <messages name="release"/>
+  </types>
+  <types xsi:type="thingML:Thing" name="TimerMessages" fragment="true">
+    <messages name="ms25_tic"/>
+  </types>
+  <types xsi:type="thingML:Thing" name="Button" includes="//@types.21 //@types.22">
+    <annotations name="c_header" value="#include &lt;Timer.h>"/>
+    <annotations name="c_global" value="extern struct Button_Instance button_var;"/>
+    <ports xsi:type="thingML:InternalPort" name="clock" sends="//@types.22/@messages.0" receives="//@types.22/@messages.0"/>
+    <ports xsi:type="thingML:ProvidedPort" name="evt" sends="//@types.21/@messages.0 //@types.21/@messages.1"/>
+    <properties name="PIN">
+      <typeRef type="//@types.10"/>
+      <init xsi:type="thingML:IntegerLiteral" intValue="7"/>
+    </properties>
+    <functions name="is_pressed">
+      <typeRef type="//@types.9"/>
+      <body xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ReturnAction">
+          <exp xsi:type="thingML:ExternExpression" expression="1 - digitalRead(">
+            <segments xsi:type="thingML:PropertyReference" property="//@types.23/@properties.0"/>
+            <segments xsi:type="thingML:ExternExpression" expression=")"/>
+          </exp>
+        </actions>
+      </body>
+    </functions>
+    <functions name="time_25ms">
+      <annotations name="c_prototype" value="void time_25ms()"/>
+      <body xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="Button_send_clock_ms25_tic(&amp;button_var);"/>
+        <actions xsi:type="thingML:ExternStatement" statement="start_timer(0, 25, &amp;time_25ms);"/>
+      </body>
+    </functions>
+    <behaviour name="Button" initial="//@types.23/@behaviour.0/@substate.0">
+      <entry xsi:type="thingML:ActionBlock">
+        <actions xsi:type="thingML:ExternStatement" statement="pinMode(">
+          <segments xsi:type="thingML:PropertyReference" property="//@types.23/@properties.0"/>
+          <segments xsi:type="thingML:ExternExpression" expression=", INPUT_PULLUP);&#xA;&#x9;&#x9;&#x9;start_timer(0, 125, &amp;time_25ms);"/>
+        </actions>
+      </entry>
+      <substate name="RELEASED">
+        <outgoing name="status" target="//@types.23/@behaviour.0/@substate.1">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.23/@ports.0" message="//@types.22/@messages.0"/>
+          <guard xsi:type="thingML:FunctionCallExpression" function="//@types.23/@functions.0"/>
+          <action xsi:type="thingML:SendAction" port="//@types.23/@ports.1" message="//@types.21/@messages.0"/>
+        </outgoing>
+      </substate>
+      <substate name="PRESSED">
+        <outgoing name="status" target="//@types.23/@behaviour.0/@substate.0">
+          <event xsi:type="thingML:ReceiveMessage" port="//@types.23/@ports.0" message="//@types.22/@messages.0"/>
+          <guard xsi:type="thingML:NotExpression">
+            <term xsi:type="thingML:FunctionCallExpression" function="//@types.23/@functions.0"/>
+          </guard>
+          <action xsi:type="thingML:SendAction" port="//@types.23/@ports.1" message="//@types.21/@messages.1"/>
+        </outgoing>
+      </substate>
+    </behaviour>
+  </types>
+  <configs name="Teensy">
+    <instances name="button" type="//@types.23"/>
+    <instances name="softButton" type="//@types.5"/>
+    <instances name="blinker" type="//@types.6"/>
+    <instances name="communication" type="//@types.0"/>
+    <connectors xsi:type="thingML:Connector" cli="//@configs.0/@instances.1" required="//@types.5/@ports.0" srv="//@configs.0/@instances.0" provided="//@types.23/@ports.1"/>
+    <connectors xsi:type="thingML:Connector" cli="//@configs.0/@instances.3" required="//@types.0/@ports.0" srv="//@configs.0/@instances.2" provided="//@types.6/@ports.1"/>
+    <connectors xsi:type="thingML:Connector" cli="//@configs.0/@instances.3" required="//@types.0/@ports.1" srv="//@configs.0/@instances.1" provided="//@types.5/@ports.2"/>
+  </configs>
+</thingML:ThingMLModel>

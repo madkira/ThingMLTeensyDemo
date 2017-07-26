@@ -1,0 +1,68 @@
+import "../_Datatypes.thingml"
+
+thing fragment basic 
+{
+	message blinking();
+}
+
+thing Blinker includes basic
+@c_global"
+extern struct Blinker_Instance blinker_var;
+IntervalTimer timer;"
+{	
+
+	internal port basic 
+    {
+		receives blinking
+		sends blinking
+	}
+
+
+	function timer_blinker(time : UInt32) do
+		'timer.begin(&callback_blinker, '&time&');'
+	end
+
+	function callback_blinker()
+	@c_prototype "void callback_blinker()"
+	do
+		'Blinker_send_basic_blinking(&blinker_var);'
+	end
+
+
+	statechart BlinkerState init Off 
+    {
+    	on entry 'pinMode(13, OUTPUT);
+    				timer = IntervalTimer();'
+    	
+        state Off 
+        { 
+        	on entry do
+				'digitalWriteFast(13, LOW);'
+		 		timer_blinker(500000)
+		 	end
+            transition blink -> On
+            event m: basic?blinking
+            
+            
+        }
+        
+        state On 
+        {
+			on entry do
+				'digitalWriteFast(13, HIGH);'
+				timer_blinker(3500000)
+			end
+			
+			transition blink -> Off
+			event basic?blinking
+        }
+
+    }
+}
+
+configuration Teensy 
+{
+	/* Begin Application configuration */
+	instance blinker : Blinker
+	/* End */
+}

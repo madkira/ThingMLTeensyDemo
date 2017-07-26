@@ -1,0 +1,38 @@
+import "../_Datatypes.thingml"
+
+thing fragment Saver
+{
+	message readbyte(id : UInt8);
+	message byteread(val : UInt8);
+	message writebyte(id : UInt8, val: UInt8);
+	message bytewrite()
+}
+
+thing Save includes Saver
+{
+	provided port Reader
+	{
+		receives readbyte
+		sends byteread
+	}
+	
+	provided port Writer
+	{
+		receives writebyte
+		sends bytewrite
+	}
+	
+	statechart EESave init Idle
+	{
+		
+		state Idle
+		{
+			internal event m: Reader?readbyte action Reader!byteread('EEPROM.read('&m.id&')')
+			internal event m: Writer?writebyte action do
+														'EEPROM.update('&m.id&','&m.val&');'
+														Writer!bytewrite()
+													  end
+		}	
+		
+	}
+}
